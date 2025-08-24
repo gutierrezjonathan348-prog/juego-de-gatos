@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Juego de Gatitos</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      overflow: hidden;
+      background: linear-gradient(270deg, #fbc2eb, #a6c1ee, #ffdde1);
+      background-size: 600% 600%;
+      animation: moverFondo 15s ease infinite;
+    }
+
+    @keyframes moverFondo {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1 {
+      margin: 10px;
+      color: #fff;
+      text-shadow: 2px 2px 5px #000;
+    }
+
+    #panel {
+      background: rgba(255, 255, 255, 0.8);
+      padding: 15px 25px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+      font-size: 1.2em;
+      text-align: center;
+    }
+
+    #startBtn {
+      padding: 10px 20px;
+      font-size: 1em;
+      background: #ff7eb3;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #startBtn:hover {
+      background: #ff4d94;
+    }
+
+    .gato {
+      position: absolute;
+      font-size: 60px;
+      cursor: pointer;
+      animation: saltar 0.4s ease;
+      user-select: none;
+    }
+
+    @keyframes saltar {
+      0% { transform: scale(0); }
+      60% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    #tabla {
+      margin-top: 20px;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      max-width: 300px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 5px;
+      text-align: center;
+    }
+
+    th {
+      background: #ffb6c1;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐱 ¡Atrapa a los gatitos! 🐱</h1>
+  <div id="panel">
+    <div id="score">Puntos: 0</div>
+    <div id="timer">Tiempo: 30s</div>
+  </div>
+  <button id="startBtn">🎮 Iniciar Juego</button>
+
+  <div id="tabla">
+    <h3>🏆 Tabla de Puntajes</h3>
+    <table>
+      <thead>
+        <tr><th>Alias</th><th>Puntos</th></tr>
+      </thead>
+      <tbody id="ranking"></tbody>
+    </table>
+  </div>
+
+  <!-- 🎵 MÚSICA DEL JUEGO -->
+  <audio id="musicaJuego" src="https://www.bensound.com/bensound-music/bensound-funkyelement.mp3" preload="auto" loop></audio>
+
+  <script>
+    let puntos = 0;
+    let tiempo = 30;
+    let juegoActivo = false;
+    let intervaloGatos;
+    let intervaloTiempo;
+
+    const scoreEl = document.getElementById("score");
+    const timerEl = document.getElementById("timer");
+    const startBtn = document.getElementById("startBtn");
+    const rankingEl = document.getElementById("ranking");
+    const musica = document.getElementById("musicaJuego");
+
+    function crearGato() {
+      if (!juegoActivo) return;
+
+      const gato = document.createElement("div");
+      gato.classList.add("gato");
+      gato.textContent = "🐱";
+
+      gato.style.left = Math.random() * (window.innerWidth - 70) + "px";
+      gato.style.top = Math.random() * (window.innerHeight - 100) + "px";
+
+      document.body.appendChild(gato);
+
+      gato.addEventListener("click", () => {
+        puntos++;
+        scoreEl.textContent = "Puntos: " + puntos;
+        gato.remove();
+      });
+
+      setTimeout(() => {
+        if (document.body.contains(gato)) {
+          gato.remove();
+        }
+      }, 2000);
+    }
+
+    function iniciarJuego() {
+      puntos = 0;
+      tiempo = 30;
+      juegoActivo = true;
+      scoreEl.textContent = "Puntos: 0";
+      timerEl.textContent = "Tiempo: 30s";
+      startBtn.style.display = "none";
+
+     
+      musica.currentTime = 0;
+      musica.play().catch(e => {
+        console.log("La reproducción automática fue bloqueada por el navegador.");
+      });
+
+      intervaloGatos = setInterval(crearGato, 800);
+      intervaloTiempo = setInterval(() => {
+        tiempo--;
+        timerEl.textContent = "Tiempo: " + tiempo + "s";
+        if (tiempo <= 0) {
+          finalizarJuego();
+        }
+      }, 1000);
+    }
+
+    function finalizarJuego() {
+      juegoActivo = false;
+      clearInterval(intervaloGatos);
+      clearInterval(intervaloTiempo);
+
+     
+      musica.pause();
+      musica.currentTime = 0;
+
+      let alias = prompt("⏳ Tiempo terminado! Tu puntuación fue: " + puntos + "\nEscribe tu alias:");
+      if (alias) {
+        guardarPuntaje(alias, puntos);
+      }
+      startBtn.style.display = "inline-block";
+      mostrarRanking();
+    }
+
+    function guardarPuntaje(alias, puntos) {
+      let ranking = JSON.parse(localStorage.getItem("rankingGatos")) || [];
+      ranking.push({alias, puntos});
+      ranking.sort((a, b) => b.puntos - a.puntos);
+      ranking = ranking.slice(0, 10);
+      localStorage.setItem("rankingGatos", JSON.stringify(ranking));
+    }
+
+    function mostrarRanking() {
+      let ranking = JSON.parse(localStorage.getItem("rankingGatos")) || [];
+      rankingEl.innerHTML = "";
+      ranking.forEach(jugador => {
+        let fila = `<tr><td>${jugador.alias}</td><td>${jugador.puntos}</td></tr>`;
+        rankingEl.innerHTML += fila;
+      });
+    }
+
+    startBtn.addEventListener("click", iniciarJuego);
+    mostrarRanking();
+  </script>
+</body>
+</html>
